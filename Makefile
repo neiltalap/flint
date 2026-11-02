@@ -5,11 +5,7 @@ CXX ?= c++
 # constexpr objects, attributes) that
 # older compilers reject. Fail fast
 # with a clear message instead of
-# pages of syntax errors. GCC 13
-# accepts the subset under -std=c2x
-# but not the -std=c23 alias, so probe
-# both spellings before giving up.
-C23_SNIPPET = printf '%s\n' \
+# pages of syntax errors. 
     'static constexpr unsigned N = 8;' \
     '[[nodiscard]] static int f(void *p)' \
     '{ return p == nullptr; }' \
