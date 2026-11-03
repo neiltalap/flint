@@ -5,20 +5,26 @@ CXX ?= c++
 # constexpr objects, attributes) that
 # older compilers reject. Fail fast
 # with a clear message instead of
-# pages of syntax errors.
-C23_PROBE := $(shell printf '%s\n' \
+# pages of syntax errors. 
     'static constexpr unsigned N = 8;' \
     '[[nodiscard]] static int f(void *p)' \
     '{ return p == nullptr; }' \
     'int arr[N];' \
-    'int main(void) { return f(nullptr); }' \
-    | $(CC) -std=c23 -pedantic -x c -c - \
-    -o /dev/null 2>/dev/null && echo ok)
-ifeq ($(C23_PROBE),)
+    'int main(void) { return f(nullptr); }'
+
+C23_STD := $(shell $(C23_SNIPPET) | \
+    $(CC) -std=c23 -pedantic -x c -c - \
+    -o /dev/null 2>/dev/null && echo c23)
+ifeq ($(C23_STD),)
+C23_STD := $(shell $(C23_SNIPPET) | \
+    $(CC) -std=c2x -pedantic -x c -c - \
+    -o /dev/null 2>/dev/null && echo c2x)
+endif
+ifeq ($(C23_STD),)
 $(error C compiler rejects Flint's C23 subset (nullptr, constexpr objects, attributes); use a newer GCC or Clang)
 endif
 
-CFLAGS += -std=c23 -pedantic -Wall -Wextra -Werror
+CFLAGS += -std=$(C23_STD) -pedantic -Wall -Wextra -Werror
 CFLAGS += -O2 -Wunused-result
 CFLAGS += -Igenerated -Iinclude
 

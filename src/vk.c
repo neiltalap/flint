@@ -565,15 +565,13 @@ bool vk_swapchain_create(struct Vk* vk, struct Wl* wl) {
                 result);
         return false;
     }
-    vk->image_count = nimg;
-
     // One primary command buffer per swapchain image, allocated up front and re-recorded each time that image is drawn into.
     VkCommandBufferAllocateInfo alloc_info = {0};
     alloc_info.sType =
         VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     alloc_info.commandPool = vk->cmd_pool;
     alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    alloc_info.commandBufferCount = vk->image_count;
+    alloc_info.commandBufferCount = nimg;
 
     result = vkAllocateCommandBuffers(
         vk->dev, &alloc_info, vk->cmd_bufs);
@@ -584,6 +582,12 @@ bool vk_swapchain_create(struct Vk* vk, struct Wl* wl) {
                 result);
         return false;
     }
+
+    // Publish the count only after the matching
+    // command buffers exist, so a failed
+    // allocation does not make cleanup free
+    // handles that were never created.
+    vk->image_count = nimg;
 
     return true;
 }
@@ -618,6 +622,14 @@ bool vk_draw_frame(struct Vk* vk, bool* resize_needed) {
                 "vkAcquireNextImageKHR failed with "
                 "error code %d\n",
                 result);
+        return false;
+    }
+
+    if (image_index >= vk->image_count) {
+        fprintf(stderr,
+                "vkAcquireNextImageKHR returned image "
+                "index %u outside %u images\n",
+                image_index, vk->image_count);
         return false;
     }
 

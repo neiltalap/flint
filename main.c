@@ -2,9 +2,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include "include/flint/flint.h"
-
 // parse_frames handles "--frames N".
 // Stores N in *out, or -1 when absent.
 // Returns 0 on success, 1 on bad usage.

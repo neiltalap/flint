@@ -15,11 +15,21 @@ jobs:
         run: make
       - name: Check
         run: make check
-      - name: Ensure all src/ compiled
+      - name: Ensure all sources compiled
         run: |
-          sudo apt-get update
-          sudo apt-get install -y libwayland-dev libvulkan-dev wayland-protocols
-
-      - name: Build binary
+          status=0
+          for f in main.c src/*.c src/*.cpp; do
+            [ -e "$f" ] || continue
+            obj="${f%.*}.o"
+            if [ ! -f "$obj" ]; then
+              echo "$f was not compiled" >&2
+              status=1
+            fi
+          done
+          exit "$status"
+      - name: Ensure no generated files committed
         run: |
-          git ls-files bin/wayland-protocols-client.h bin/wayland-protocols-code.c && exit 1 || exit 0
+          if git ls-files 'generated/*' | grep -q .; then
+            echo "generated files are tracked" >&2
+            exit 1
+          fi

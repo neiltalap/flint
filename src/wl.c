@@ -27,19 +27,25 @@ static void registry_global(void* data,
                              uint32_t name,                 // Unique ID of the global object
                              const char* interface,         // Name of the interface
                              uint32_t version) {            // Version of the interface
-    (void)version;
     struct Wl* wl = data;
 
     // Flint only needs the compositor and the xdg_wm_base shell,
-    // so every other interface is ignored.
+    // so every other interface is ignored. Clamp the requested
+    // version to the one the compositor advertises.
     if (strcmp(interface, wl_compositor_interface.name) ==
         0) {
+        uint32_t bind_version =
+            version < 4 ? version : 4;
         wl->compositor = wl_registry_bind(
-            registry, name, &wl_compositor_interface, 4);
+            registry, name, &wl_compositor_interface,
+            bind_version);
     } else if (strcmp(interface,
                        xdg_wm_base_interface.name) == 0) {
+        uint32_t bind_version =
+            version < 1 ? version : 1;
         wl->wm_base = wl_registry_bind(
-            registry, name, &xdg_wm_base_interface, 1);
+            registry, name, &xdg_wm_base_interface,
+            bind_version);
     }
 }
 
@@ -91,9 +97,14 @@ static void xdg_toplevel_configure(
     (void)states;                                           // State of the window: fullscreen, resized, etc.
     struct Wl* wl = data;
 
-    if (width > 0 && height > 0 &&                          // If width and height are 0 it means no preferred dimension
-        (width != wl->width || height != wl->height)) {
+    // Either dimension can be 0, meaning no
+    // preference for that axis; apply each
+    // nonzero dimension independently.
+    if (width > 0 && width != wl->width) {
         wl->width = width;
+        wl->resized = true;
+    }
+    if (height > 0 && height != wl->height) {
         wl->height = height;
         wl->resized = true;
     }
